@@ -116,6 +116,7 @@ func (c *ConfigClient) AddZone(
 
 const configZoneGetSettingsMethod = "org.fedoraproject.FirewallD1.config.zone.getSettings"
 
+// Return permanent settings of given zone.
 func (c *ConfigClient) GetZoneSettings(
 	ctx context.Context, zoneName string) (ZoneSettings, error) {
 	path, err := c.GetZoneByName(ctx, zoneName)
