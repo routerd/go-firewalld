@@ -28,15 +28,15 @@ import (
 
 func TestClient(t *testing.T) {
 	t.Run("Close", func(t *testing.T) {
-		closer := &closerMock{}
-		closer.On("Close").Return(nil)
+		connection := &connectionMock{}
+		connection.On("Close").Return(nil)
 
 		c := &Client{
-			conn: closer,
+			conn: connection,
 		}
 
 		require.NoError(t, c.Close())
-		closer.AssertCalled(t, "Close")
+		connection.AssertCalled(t, "Close")
 	})
 
 	t.Run("Version", func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestClient(t *testing.T) {
 			Return(nil)
 
 		c := &Client{
-			dbus: caller,
+			main: caller,
 		}
 
 		ctx := context.Background()
@@ -80,14 +80,20 @@ func (m *callerMock) Call(ctx context.Context, c call) error {
 	return err
 }
 
-type closerMock struct {
+type connectionMock struct {
 	mock.Mock
 }
 
-var _ io.Closer = (*closerMock)(nil)
+var _ io.Closer = (*connectionMock)(nil)
 
-func (m *closerMock) Close() error {
+func (m *connectionMock) Close() error {
 	args := m.Called()
 	err, _ := args.Error(0).(error)
 	return err
+}
+
+func (m *connectionMock) Object(dest, path string) caller {
+	args := m.Called(dest, path)
+	c, _ := args.Get(0).(caller)
+	return c
 }

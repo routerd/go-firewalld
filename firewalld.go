@@ -27,16 +27,10 @@ type caller interface {
 	Call(ctx context.Context, c call) error
 }
 
-// Client for the Firewalld DBUS API
-type Client struct {
-	conn io.Closer
-	dbus caller
+type connection interface {
+	io.Closer
+	Object(dest, path string) caller
 }
-
-const (
-	objectDest = "org.fedoraproject.FirewallD1"
-	objectPath = "/org/fedoraproject/FirewallD1"
-)
 
 // Opens a new connection to the system dbus and returns a connected Client for firewalld.
 func Open() (*Client, error) {
@@ -45,11 +39,37 @@ func Open() (*Client, error) {
 		return nil, err
 	}
 
+	c := &dbusConnectionWrapper{conn: conn}
+	return NewClient(c), nil
+}
+
+// Client for the Firewalld D-Bus API
+type Client struct {
+	conn   connection
+	main   caller
+	config *ConfigClient
+}
+
+const (
+	// Firewalld D-Bus destination
+	dbusDest = "org.fedoraproject.FirewallD1"
+
+	mainPath   = "/org/fedoraproject/FirewallD1"
+	configPath = "/org/fedoraproject/FirewallD1/config"
+)
+
+func NewClient(conn connection) *Client {
 	return &Client{
 		conn: conn,
-		dbus: &dbusObjectWrapper{
-			obj: conn.Object(objectDest, objectPath)},
-	}, nil
+		main: conn.Object(dbusDest, mainPath),
+
+		config: NewConfigClient(conn),
+	}
+}
+
+// Config returns a client for working on firewalld persistant configuration.
+func (c *Client) Config() *ConfigClient {
+	return c.config
 }
 
 const getPropertyMethod = "org.freedesktop.DBus.Properties.Get"
@@ -57,15 +77,37 @@ const getPropertyMethod = "org.freedesktop.DBus.Properties.Get"
 // Returns the Firewalld version
 func (c *Client) Version(ctx context.Context) (string, error) {
 	var version string
-	return version, c.dbus.Call(ctx,
+	return version, c.main.Call(ctx,
 		newCall(getPropertyMethod, 0).
 			WithArguments("org.fedoraproject.FirewallD1", "version").
 			WithReturns(&version))
 }
 
+const reloadMethod = "org.fedoraproject.FirewallD1.reload"
+
+func (c *Client) Reload(ctx context.Context) error {
+	return c.main.Call(ctx,
+		newCall(reloadMethod, 0))
+}
+
 // Close disconnects from dbus
 func (c *Client) Close() error {
 	return c.conn.Close()
+}
+
+type dbusConnectionWrapper struct {
+	conn *dbus.Conn
+}
+
+var _ connection = (*dbusConnectionWrapper)(nil)
+
+func (w *dbusConnectionWrapper) Close() error {
+	return w.conn.Close()
+}
+
+func (w *dbusConnectionWrapper) Object(dest, path string) caller {
+	return &dbusObjectWrapper{
+		obj: w.conn.Object(dest, dbus.ObjectPath(path))}
 }
 
 // dbusObjectWrapper implements the caller interface via dbus.BusObject
