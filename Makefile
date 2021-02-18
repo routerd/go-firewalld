@@ -1,4 +1,4 @@
-# Copyright 2020 The routerd Authors.
+# Copyright 2020 The routerd authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,6 +36,10 @@ clean:
 test:
 	CGO_ENABLED=1 go test -race -v ./...
 .PHONY: test
+
+ci-test: test
+	hack/validate-directory-clean.sh
+.PHONY: ci-test
 
 fmt:
 	go fmt ./...

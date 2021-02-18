@@ -1,5 +1,5 @@
 /*
-Copyright YEAR The XXX Authors.
+Copyright YEAR The XXX authors.
 
 fail
 

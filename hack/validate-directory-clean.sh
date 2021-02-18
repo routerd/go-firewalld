@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright YEAR The XXX authors.
-#
-# failed
+# Copyright 2021 The routerd authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,3 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+set -o pipefail
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  git diff
+  echo "Repo is dirty! Propably because gofmt or make generate touched something...";
+  exit 1
+fi
