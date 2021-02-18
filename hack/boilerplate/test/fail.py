@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright YEAR The XXX Authors.
+# Copyright YEAR The XXX authors.
 #
 # failed
 #
